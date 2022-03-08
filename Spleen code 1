@@ -1,0 +1,170 @@
+library(dplyr)
+library(Seurat) 
+library(patchwork)
+library(SoupX)
+library(DoubletFinder)
+library(ggplot2)
+library(readr)
+library(harmony)
+library(presto)
+library(scClustViz)
+library(shiny)
+library(EnhancedVolcano)
+library(Matrix)
+
+## load in spleen 1
+matrix_dir = "/Volumes/Backup Plus/citeseq/Spleen/Spleen-R420/outs/filtered_feature_bc_matrix/"
+barcode.path <- paste0(matrix_dir, "barcodes.tsv.gz")
+features.path <- paste0(matrix_dir, "features.tsv.gz")
+matrix.path <- paste0(matrix_dir, "matrix.mtx.gz")
+mat <- readMM(file = matrix.path)
+feature.names = read.delim(features.path, header = FALSE, stringsAsFactors = FALSE)
+barcode.names = read.delim(barcode.path, header = FALSE, stringsAsFactors = FALSE)
+colnames (mat) = barcode.names$V1
+rownames (mat) = feature.names$V2
+spleen1  <- CreateSeuratObject(mat)
+rm(mat)
+
+#qc
+spleen1[["percent.mt"]] <- PercentageFeatureSet(spleen1, pattern = "^MT-")
+VlnPlot(spleen1, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+spleen1 <- subset(spleen1, subset = nFeature_RNA > 100 & percent.mt < 10)
+
+## load in spleen 2
+matrix_dir = "/Volumes/Backup Plus/citeseq/Spleen/R405_spleen/outs/filtered_feature_bc_matrix/"
+barcode.path <- paste0(matrix_dir, "barcodes.tsv.gz")
+features.path <- paste0(matrix_dir, "features.tsv.gz")
+matrix.path <- paste0(matrix_dir, "matrix.mtx.gz")
+mat <- readMM(file = matrix.path)
+feature.names = read.delim(features.path, header = FALSE, stringsAsFactors = FALSE)
+barcode.names = read.delim(barcode.path, header = FALSE, stringsAsFactors = FALSE)
+colnames (mat) = barcode.names$V1
+rownames (mat) = feature.names$V2
+spleen2  <- CreateSeuratObject(mat)
+rm(mat)
+
+#qc
+spleen2[["percent.mt"]] <- PercentageFeatureSet(spleen2, pattern = "^MT-")
+VlnPlot(spleen2, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+spleen2 <- subset(spleen2, subset = nFeature_RNA > 100 & percent.mt < 10)
+
+#merge fresh spleens 
+spleen1$dataorigin <- "Fresh 1"
+spleen2$dataorigin <- "Fresh 2"
+fresh.spleen <- merge(x = spleen1, y = spleen2)
+fresh.spleen <- SCTransform(fresh.spleen, vars.to.regress="percent.mt")
+fresh.spleen <- RunPCA(object = fresh.spleen)
+fresh.spleen <- RunHarmony(fresh.spleen, "dataorigin", plot_convergence = TRUE,assay.use="SCT")
+fresh.spleen <- RunUMAP(fresh.spleen, reduction = "harmony",dims = 1:30)
+fresh.spleen <- FindNeighbors(fresh.spleen, reduction = "harmony",dims = 1:30)
+fresh.spleen <- FindClusters(fresh.spleen, resolution = 0.75)
+DimPlot(fresh.spleen, reduction = "umap", label=TRUE, repel=TRUE)
+DimPlot(fresh.spleen, reduction = "umap", label=TRUE, repel=TRUE, group.by="dataorigin")
+
+#find markers 
+freshspleen0.markers <- FindMarkers(fresh.spleen, ident.1 = 0, min.pct = 0.25)
+freshspleen1.markers <- FindMarkers(fresh.spleen, ident.1 = 1, min.pct = 0.25)
+freshspleen2.markers <- FindMarkers(fresh.spleen, ident.1 = 2, min.pct = 0.25)
+freshspleen3.markers <- FindMarkers(fresh.spleen, ident.1 = 3, min.pct = 0.25)
+freshspleen4.markers <- FindMarkers(fresh.spleen, ident.1 = 4, min.pct = 0.25)
+freshspleen5.markers <- FindMarkers(fresh.spleen, ident.1 = 5, min.pct = 0.25)
+freshspleen6.markers <- FindMarkers(fresh.spleen, ident.1 = 6, min.pct = 0.25)
+freshspleen7.markers <- FindMarkers(fresh.spleen, ident.1 = 7, min.pct = 0.25)
+freshspleen8.markers <- FindMarkers(fresh.spleen, ident.1 = 8, min.pct = 0.25)
+freshspleen9.markers <- FindMarkers(fresh.spleen, ident.1 = 9, min.pct = 0.25)
+freshspleen10.markers <- FindMarkers(fresh.spleen, ident.1 = 10, min.pct = 0.25)
+freshspleen11.markers <- FindMarkers(fresh.spleen, ident.1 = 11, min.pct = 0.25)
+freshspleen12.markers <- FindMarkers(fresh.spleen, ident.1 = 12, min.pct = 0.25)
+freshspleen13.markers <- FindMarkers(fresh.spleen, ident.1 = 13, min.pct = 0.25)
+freshspleen14.markers <- FindMarkers(fresh.spleen, ident.1 = 14, min.pct = 0.25)
+freshspleen17.markers <- FindMarkers(fresh.spleen, ident.1 = 17, min.pct = 0.25)
+
+
+## load in frozen spleen 3
+matrix_dir = "/Volumes/Backup Plus/citeseq/Spleen/Spleen_3_sort/outs/filtered_feature_bc_matrix/"
+barcode.path <- paste0(matrix_dir, "barcodes.tsv.gz")
+features.path <- paste0(matrix_dir, "features.tsv.gz")
+matrix.path <- paste0(matrix_dir, "matrix.mtx.gz")
+mat <- readMM(file = matrix.path)
+feature.names = read.delim(features.path, header = FALSE, stringsAsFactors = FALSE)
+barcode.names = read.delim(barcode.path, header = FALSE, stringsAsFactors = FALSE)
+colnames (mat) = barcode.names$V1
+rownames (mat) = feature.names$V2
+frozen.spleen3  <- CreateSeuratObject(mat)
+rm(mat)
+
+#qc
+frozen.spleen3[["percent.mt"]] <- PercentageFeatureSet(frozen.spleen3, pattern = "^MT-")
+VlnPlot(frozen.spleen3, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+frozen.spleen3 <- subset(frozen.spleen3, subset = nFeature_RNA > 100 & percent.mt <10)
+
+frozen.spleen3 <- SCTransform(frozen.spleen3, vars.to.regress="percent.mt")
+frozen.spleen3 <- RunPCA(frozen.spleen3)
+frozen.spleen3 <- RunUMAP(frozen.spleen3, dims = 1:30)
+frozen.spleen3 <- FindNeighbors(frozen.spleen3, dims = 1:30)
+frozen.spleen3 <- FindClusters(frozen.spleen3, resolution = 0.5)
+DimPlot(frozen.spleen3, reduction = "umap", label=TRUE, repel=TRUE)
+
+frozenspleen0.markers <- FindMarkers(frozen.spleen3, ident.1 = 0, min.pct = 0.25)
+frozenspleen1.markers <- FindMarkers(frozen.spleen3, ident.1 = 1, min.pct = 0.25)
+frozenspleen2.markers <- FindMarkers(frozen.spleen3, ident.1 = 2, min.pct = 0.25)
+frozenspleen3.markers <- FindMarkers(frozen.spleen3, ident.1 = 3, min.pct = 0.25)
+frozenspleen4.markers <- FindMarkers(frozen.spleen3, ident.1 = 4, min.pct = 0.25)
+frozenspleen5.markers <- FindMarkers(frozen.spleen3, ident.1 = 5, min.pct = 0.25)
+frozenspleen6.markers <- FindMarkers(frozen.spleen3, ident.1 = 6, min.pct = 0.25)
+frozenspleen7.markers <- FindMarkers(frozen.spleen3, ident.1 = 7, min.pct = 0.25)
+frozenspleen8.markers <- FindMarkers(frozen.spleen3, ident.1 = 8, min.pct = 0.25)
+frozenspleen9.markers <- FindMarkers(frozen.spleen3, ident.1 = 9, min.pct = 0.25)
+frozenspleen10.markers <- FindMarkers(frozen.spleen3, ident.1 = 10, min.pct = 0.25)
+frozenspleen11.markers <- FindMarkers(frozen.spleen3, ident.1 = 11, min.pct = 0.25)
+frozenspleen12.markers <- FindMarkers(frozen.spleen3, ident.1 = 12, min.pct = 0.25)
+frozenspleen13.markers <- FindMarkers(frozen.spleen3, ident.1 = 13, min.pct = 0.25)
+frozenspleen14.markers <- FindMarkers(frozen.spleen3, ident.1 = 14, min.pct = 0.25)
+
+## load in spleen 6
+matrix_dir = "/Volumes/Backup Plus/citeseq/Spleen/Spleen_6_sort/outs/filtered_feature_bc_matrix/"
+barcode.path <- paste0(matrix_dir, "barcodes.tsv.gz")
+features.path <- paste0(matrix_dir, "features.tsv.gz")
+matrix.path <- paste0(matrix_dir, "matrix.mtx.gz")
+mat <- readMM(file = matrix.path)
+feature.names = read.delim(features.path, header = FALSE, stringsAsFactors = FALSE)
+barcode.names = read.delim(barcode.path, header = FALSE, stringsAsFactors = FALSE)
+colnames (mat) = barcode.names$V1
+rownames (mat) = feature.names$V2
+frozen.spleen6  <- CreateSeuratObject(mat)
+rm(mat)
+
+#qc
+frozen.spleen6[["percent.mt"]] <- PercentageFeatureSet(frozen.spleen6, pattern = "^MT-")
+VlnPlot(frozen.spleen6, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+frozen.spleen6 <- subset(frozen.spleen6, subset = nFeature_RNA > 100 & percent.mt < 10)
+
+frozen.spleen6 <- SCTransform(frozen.spleen6, vars.to.regress="percent.mt")
+frozen.spleen6 <- RunPCA(frozen.spleen6)
+frozen.spleen6 <- RunUMAP(frozen.spleen6, dims = 1:30)
+frozen.spleen6 <- FindNeighbors(frozen.spleen6, dims = 1:30)
+frozen.spleen6 <- FindClusters(frozen.spleen6, resolution = 0.5)
+DimPlot(frozen.spleen6, reduction = "umap", label=TRUE, repel=TRUE)
+
+frozenspleen60.markers <- FindMarkers(frozen.spleen6, ident.1 = 0, min.pct = 0.25)
+frozenspleen61.markers <- FindMarkers(frozen.spleen6, ident.1 = 1, min.pct = 0.25)
+frozenspleen62.markers <- FindMarkers(frozen.spleen6, ident.1 = 2, min.pct = 0.25)
+frozenspleen63.markers <- FindMarkers(frozen.spleen6, ident.1 = 3, min.pct = 0.25)
+frozenspleen64.markers <- FindMarkers(frozen.spleen6, ident.1 = 4, min.pct = 0.25)
+frozenspleen65.markers <- FindMarkers(frozen.spleen6, ident.1 = 5, min.pct = 0.25)
+frozenspleen66.markers <- FindMarkers(frozen.spleen6, ident.1 = 6, min.pct = 0.25)
+
+
+
+#merge frozen spleens 
+frozen.spleen3$dataorigin <- "Frozen 1"
+frozen.spleen6$dataorigin <- "Frozen 2"
+frozen.spleen <- merge(x = frozen.spleen, y = frozen.spleen6)
+frozen.spleen <- SCTransform(frozen.spleen, vars.to.regress="percent.mt")
+frozen.spleen <- RunPCA(object = frozen.spleen)
+frozen.spleen <- RunHarmony(frozen.spleen, "dataorigin", plot_convergence = TRUE,assay.use="SCT")
+frozen.spleen <- RunUMAP(frozen.spleen, reduction = "harmony",dims = 1:30)
+frozen.spleen <- FindNeighbors(frozen.spleen, reduction = "harmony",dims = 1:30)
+frozen.spleen <- FindClusters(frozen.spleen, resolution = 0.75)
+DimPlot(frozen.spleen, reduction = "umap", label=TRUE, repel=TRUE)
+DimPlot(frozen.spleen, reduction = "umap", label=TRUE, repel=TRUE, group.by="dataorigin")
