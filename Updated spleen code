@@ -1,0 +1,388 @@
+library(dplyr)
+library(Seurat) 
+library(patchwork)
+library(SoupX)
+library(DoubletFinder)
+library(ggplot2)
+library(readr)
+library(harmony)
+library(presto)
+library(scClustViz)
+library(shiny)
+library(EnhancedVolcano)
+library(Matrix)
+
+## load in spleen 1
+matrix_dir = "/Volumes/Backup Plus/citeseq/Spleen/Spleen-R420/outs/filtered_feature_bc_matrix/"
+barcode.path <- paste0(matrix_dir, "barcodes.tsv.gz")
+features.path <- paste0(matrix_dir, "features.tsv.gz")
+matrix.path <- paste0(matrix_dir, "matrix.mtx.gz")
+mat <- readMM(file = matrix.path)
+feature.names = read.delim(features.path, header = FALSE, stringsAsFactors = FALSE)
+barcode.names = read.delim(barcode.path, header = FALSE, stringsAsFactors = FALSE)
+colnames (mat) = barcode.names$V1
+rownames (mat) = feature.names$V2
+spleen1  <- CreateSeuratObject(mat)
+rm(mat)
+
+#qc
+spleen1[["percent.mt"]] <- PercentageFeatureSet(spleen1, pattern = "^MT-")
+VlnPlot(spleen1, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+spleen1 <- subset(spleen1, subset = nFeature_RNA > 100 & percent.mt < 10)
+
+## load in spleen 2
+matrix_dir = "/Volumes/Backup Plus/citeseq/Spleen/R405_spleen/outs/filtered_feature_bc_matrix/"
+barcode.path <- paste0(matrix_dir, "barcodes.tsv.gz")
+features.path <- paste0(matrix_dir, "features.tsv.gz")
+matrix.path <- paste0(matrix_dir, "matrix.mtx.gz")
+mat <- readMM(file = matrix.path)
+feature.names = read.delim(features.path, header = FALSE, stringsAsFactors = FALSE)
+barcode.names = read.delim(barcode.path, header = FALSE, stringsAsFactors = FALSE)
+colnames (mat) = barcode.names$V1
+rownames (mat) = feature.names$V2
+spleen2  <- CreateSeuratObject(mat)
+rm(mat)
+
+#qc
+spleen2[["percent.mt"]] <- PercentageFeatureSet(spleen2, pattern = "^MT-")
+VlnPlot(spleen2, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+spleen2 <- subset(spleen2, subset = nFeature_RNA > 100 & percent.mt < 10)
+
+#merge fresh spleens 
+spleen1$dataorigin <- "Fresh 1"
+spleen2$dataorigin <- "Fresh 2"
+fresh.spleen <- merge(x = spleen1, y = spleen2)
+fresh.spleen <- SCTransform(fresh.spleen, vars.to.regress="percent.mt")
+fresh.spleen <- RunPCA(object = fresh.spleen)
+fresh.spleen <- RunHarmony(fresh.spleen, "dataorigin", plot_convergence = TRUE,assay.use="SCT")
+fresh.spleen <- RunUMAP(fresh.spleen, reduction = "harmony",dims = 1:30)
+fresh.spleen <- FindNeighbors(fresh.spleen, reduction = "harmony",dims = 1:30)
+fresh.spleen <- FindClusters(fresh.spleen, resolution = 0.75)
+DimPlot(fresh.spleen, reduction = "umap", label=TRUE, repel=TRUE)
+DimPlot(fresh.spleen, reduction = "umap", label=TRUE, repel=TRUE, group.by="dataorigin")
+
+save(fresh.spleen, file="merged.fresh.spleen.rds")
+
+#find markers 
+freshspleen0.markers <- FindMarkers(fresh.spleen, ident.1 = 0, min.pct = 0.25)
+freshspleen1.markers <- FindMarkers(fresh.spleen, ident.1 = 1, min.pct = 0.25)
+freshspleen2.markers <- FindMarkers(fresh.spleen, ident.1 = 2, min.pct = 0.25)
+freshspleen3.markers <- FindMarkers(fresh.spleen, ident.1 = 3, min.pct = 0.25)
+freshspleen4.markers <- FindMarkers(fresh.spleen, ident.1 = 4, min.pct = 0.25)
+freshspleen5.markers <- FindMarkers(fresh.spleen, ident.1 = 5, min.pct = 0.25)
+freshspleen6.markers <- FindMarkers(fresh.spleen, ident.1 = 6, min.pct = 0.25)
+freshspleen7.markers <- FindMarkers(fresh.spleen, ident.1 = 7, min.pct = 0.25)
+freshspleen8.markers <- FindMarkers(fresh.spleen, ident.1 = 8, min.pct = 0.25)
+freshspleen9.markers <- FindMarkers(fresh.spleen, ident.1 = 9, min.pct = 0.25)
+freshspleen10.markers <- FindMarkers(fresh.spleen, ident.1 = 10, min.pct = 0.25)
+freshspleen11.markers <- FindMarkers(fresh.spleen, ident.1 = 11, min.pct = 0.25)
+freshspleen12.markers <- FindMarkers(fresh.spleen, ident.1 = 12, min.pct = 0.25)
+freshspleen13.markers <- FindMarkers(fresh.spleen, ident.1 = 13, min.pct = 0.25)
+freshspleen14.markers <- FindMarkers(fresh.spleen, ident.1 = 14, min.pct = 0.25)
+freshspleen17.markers <- FindMarkers(fresh.spleen, ident.1 = 17, min.pct = 0.25)
+freshspleen18.markers <- FindMarkers(fresh.spleen, ident.1 = 18, min.pct = 0.25)
+
+## load in frozen spleen 3
+matrix_dir = "/Volumes/Backup Plus/citeseq/Spleen/Spleen_3_sort/outs/filtered_feature_bc_matrix/"
+barcode.path <- paste0(matrix_dir, "barcodes.tsv.gz")
+features.path <- paste0(matrix_dir, "features.tsv.gz")
+matrix.path <- paste0(matrix_dir, "matrix.mtx.gz")
+mat <- readMM(file = matrix.path)
+feature.names = read.delim(features.path, header = FALSE, stringsAsFactors = FALSE)
+barcode.names = read.delim(barcode.path, header = FALSE, stringsAsFactors = FALSE)
+colnames (mat) = barcode.names$V1
+rownames (mat) = feature.names$V2
+frozen.spleen3  <- CreateSeuratObject(mat)
+rm(mat)
+
+#qc
+frozen.spleen3[["percent.mt"]] <- PercentageFeatureSet(frozen.spleen3, pattern = "^MT-")
+VlnPlot(frozen.spleen3, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+frozen.spleen3 <- subset(frozen.spleen3, subset = nFeature_RNA > 100 & percent.mt <10)
+
+frozen.spleen3 <- SCTransform(frozen.spleen3, vars.to.regress="percent.mt")
+frozen.spleen3 <- RunPCA(frozen.spleen3)
+frozen.spleen3 <- RunUMAP(frozen.spleen3, dims = 1:30)
+frozen.spleen3 <- FindNeighbors(frozen.spleen3, dims = 1:30)
+frozen.spleen3 <- FindClusters(frozen.spleen3, resolution = 0.5)
+DimPlot(frozen.spleen3, reduction = "umap", label=TRUE, repel=TRUE)
+
+frozenspleen0.markers <- FindMarkers(frozen.spleen3, ident.1 = 0, min.pct = 0.25)
+frozenspleen1.markers <- FindMarkers(frozen.spleen3, ident.1 = 1, min.pct = 0.25)
+frozenspleen2.markers <- FindMarkers(frozen.spleen3, ident.1 = 2, min.pct = 0.25)
+frozenspleen3.markers <- FindMarkers(frozen.spleen3, ident.1 = 3, min.pct = 0.25)
+frozenspleen4.markers <- FindMarkers(frozen.spleen3, ident.1 = 4, min.pct = 0.25)
+frozenspleen5.markers <- FindMarkers(frozen.spleen3, ident.1 = 5, min.pct = 0.25)
+frozenspleen6.markers <- FindMarkers(frozen.spleen3, ident.1 = 6, min.pct = 0.25)
+frozenspleen7.markers <- FindMarkers(frozen.spleen3, ident.1 = 7, min.pct = 0.25)
+frozenspleen8.markers <- FindMarkers(frozen.spleen3, ident.1 = 8, min.pct = 0.25)
+frozenspleen9.markers <- FindMarkers(frozen.spleen3, ident.1 = 9, min.pct = 0.25)
+frozenspleen10.markers <- FindMarkers(frozen.spleen3, ident.1 = 10, min.pct = 0.25)
+frozenspleen11.markers <- FindMarkers(frozen.spleen3, ident.1 = 11, min.pct = 0.25)
+frozenspleen12.markers <- FindMarkers(frozen.spleen3, ident.1 = 12, min.pct = 0.25)
+frozenspleen13.markers <- FindMarkers(frozen.spleen3, ident.1 = 13, min.pct = 0.25)
+frozenspleen14.markers <- FindMarkers(frozen.spleen3, ident.1 = 14, min.pct = 0.25)
+
+## load in spleen 6
+matrix_dir = "/Volumes/Backup Plus/citeseq/Spleen/Spleen_6_sort/outs/filtered_feature_bc_matrix/"
+barcode.path <- paste0(matrix_dir, "barcodes.tsv.gz")
+features.path <- paste0(matrix_dir, "features.tsv.gz")
+matrix.path <- paste0(matrix_dir, "matrix.mtx.gz")
+mat <- readMM(file = matrix.path)
+feature.names = read.delim(features.path, header = FALSE, stringsAsFactors = FALSE)
+barcode.names = read.delim(barcode.path, header = FALSE, stringsAsFactors = FALSE)
+colnames (mat) = barcode.names$V1
+rownames (mat) = feature.names$V2
+frozen.spleen6  <- CreateSeuratObject(mat)
+rm(mat)
+
+#qc
+frozen.spleen6[["percent.mt"]] <- PercentageFeatureSet(frozen.spleen6, pattern = "^MT-")
+VlnPlot(frozen.spleen6, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+frozen.spleen6 <- subset(frozen.spleen6, subset = nFeature_RNA > 100 & percent.mt < 10)
+
+frozen.spleen6 <- SCTransform(frozen.spleen6, vars.to.regress="percent.mt")
+frozen.spleen6 <- RunPCA(frozen.spleen6)
+frozen.spleen6 <- RunUMAP(frozen.spleen6, dims = 1:30)
+frozen.spleen6 <- FindNeighbors(frozen.spleen6, dims = 1:30)
+frozen.spleen6 <- FindClusters(frozen.spleen6, resolution = 0.5)
+DimPlot(frozen.spleen6, reduction = "umap", label=TRUE, repel=TRUE)
+
+
+#merge frozen spleens 
+frozen.spleen3$dataorigin <- "Frozen 1"
+frozen.spleen6$dataorigin <- "Frozen 2"
+frozen.spleen <- merge(x = frozen.spleen3, y = frozen.spleen6)
+frozen.spleen <- SCTransform(frozen.spleen, vars.to.regress="percent.mt")
+frozen.spleen <- RunPCA(object = frozen.spleen)
+frozen.spleen <- RunHarmony(frozen.spleen, "dataorigin", plot_convergence = TRUE,assay.use="SCT")
+frozen.spleen <- RunUMAP(frozen.spleen, reduction = "harmony",dims = 1:30)
+frozen.spleen <- FindNeighbors(frozen.spleen, reduction = "harmony",dims = 1:30)
+frozen.spleen <- FindClusters(frozen.spleen, resolution = 0.75)
+DimPlot(frozen.spleen, reduction = "umap", label=TRUE, repel=TRUE)
+DimPlot(frozen.spleen, reduction = "umap", label=TRUE, repel=TRUE, group.by="dataorigin")
+
+save(frozen.spleen, file="merged.frozen.spleen.rds")
+
+#merge frozen & fresh
+frozen.spleen$dataorigin <- "Frozen"
+fresh.spleen$dataorigin <- "Fresh"
+merged.spleen <- merge(x = frozen.spleen, y = fresh.spleen)
+merged.spleen <- SCTransform(merged.spleen, vars.to.regress="percent.mt")
+merged.spleen <- RunPCA(object = merged.spleen)
+merged.spleen <- RunHarmony(merged.spleen, "dataorigin", plot_convergence = TRUE,assay.use="SCT")
+merged.spleen <- RunUMAP(merged.spleen, reduction = "harmony",dims = 1:30)
+merged.spleen <- FindNeighbors(merged.spleen, reduction = "harmony",dims = 1:30)
+merged.spleen <- FindClusters(merged.spleen, resolution = 0.75)
+DimPlot(merged.spleen, reduction = "umap", label=TRUE, repel=TRUE)
+DimPlot(merged.spleen, reduction = "umap", label=TRUE, repel=TRUE, group.by="dataorigin")
+
+save(merged.spleen, file="merged.spleen.frozenfresh.rds")
+
+#Look at mitchondrial and features to decide which clusters are AB aggreagtes
+merged.spleen[["percent.mt"]] <- PercentageFeatureSet(merged.spleen, pattern = "^MT-")
+VlnPlot(merged.spleen, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+merged.spleen <- subset(merged.spleen, subset = nFeature_RNA > 100 & percent.mt < 10)
+
+#Look at all markers 
+merged.spleen0.markers <- FindMarkers(merged.spleen, ident.1 = 0, min.pct = 0.25)
+merged.spleen1.markers <- FindMarkers(merged.spleen, ident.1 = 1, min.pct = 0.25)
+merged.spleen2.markers <- FindMarkers(merged.spleen, ident.1 = 2, min.pct = 0.25)
+merged.spleen3.markers <- FindMarkers(merged.spleen, ident.1 = 3, min.pct = 0.25)
+merged.spleen4.markers <- FindMarkers(merged.spleen, ident.1 = 4, min.pct = 0.25)
+merged.spleen5.markers <- FindMarkers(merged.spleen, ident.1 = 5, min.pct = 0.25)
+merged.spleen6.markers <- FindMarkers(merged.spleen, ident.1 = 6, min.pct = 0.25)
+merged.spleen7.markers <- FindMarkers(merged.spleen, ident.1 = 7, min.pct = 0.25)
+merged.spleen8.markers <- FindMarkers(merged.spleen, ident.1 = 8, min.pct = 0.25)
+merged.spleen9.markers <- FindMarkers(merged.spleen, ident.1 = 9, min.pct = 0.25)
+merged.spleen10.markers <- FindMarkers(merged.spleen, ident.1 = 10, min.pct = 0.25)
+merged.spleen11.markers <- FindMarkers(merged.spleen, ident.1 = 11, min.pct = 0.25)
+merged.spleen12.markers <- FindMarkers(merged.spleen, ident.1 = 12, min.pct = 0.25)
+merged.spleen13.markers <- FindMarkers(merged.spleen, ident.1 = 13, min.pct = 0.25)
+merged.spleen14.markers <- FindMarkers(merged.spleen, ident.1 = 14, min.pct = 0.25)
+merged.spleen15.markers <- FindMarkers(merged.spleen, ident.1 = 15, min.pct = 0.25)
+merged.spleen16.markers <- FindMarkers(merged.spleen, ident.1 = 16, min.pct = 0.25)
+merged.spleen17.markers <- FindMarkers(merged.spleen, ident.1 = 17, min.pct = 0.25)
+merged.spleen18.markers <- FindMarkers(merged.spleen, ident.1 = 18, min.pct = 0.25)
+merged.spleen19.markers <- FindMarkers(merged.spleen, ident.1 = 19, min.pct = 0.25)
+merged.spleen20.markers <- FindMarkers(merged.spleen, ident.1 = 20, min.pct = 0.25)
+merged.spleen21.markers <- FindMarkers(merged.spleen, ident.1 = 21, min.pct = 0.25)
+merged.spleen22.markers <- FindMarkers(merged.spleen, ident.1 = 22, min.pct = 0.25)
+
+
+# Clustsers - 0-NK cells, 1-NK cells, 2-ILCs, 3-NK cells, 4-AB aggregate, 5-B cells, 6-B cells, 7-CD8 T cells, 8-NK cells, 9-myeloid, 10-ILCs, 11-Ab aggregate, 12-CD4 T cells, 13-NK cells, 14-B cells, 15-NK cells, 16-myleoid, 17-myelopid, 18-plasma cells, 19-ILC2s, 20-endothelial, 21-myeloid, 22-epithelial
+
+#Look at total spleen
+FeaturePlot(merged.spleen, features = "TCRiNKT-TotalSeqC", order=TRUE, min.cutoff = 4)
+
+
+#Subset out ILCs
+spleen.ILCs <- subset(merged.spleen, subset = seurat_clusters == 0|seurat_clusters == 1|seurat_clusters == 2|seurat_clusters == 3|seurat_clusters == 8|seurat_clusters == 10|seurat_clusters == 13|seurat_clusters == 15|seurat_clusters == 19)
+spleen.ILCs <- SCTransform(spleen.ILCs, vars.to.regress="percent.mt")
+spleen.ILCs <- RunPCA(spleen.ILCs)
+spleen.ILCs <- RunUMAP(spleen.ILCs, reduction = "harmony", dims = 1:30)
+spleen.ILCs <- FindNeighbors(spleen.ILCs, dims = 1:30)
+spleen.ILCs <- FindClusters(spleen.ILCs, resolution = 0.75)
+DimPlot(spleen.ILCs, reduction = "umap", label=TRUE, repel=TRUE)
+DimPlot(spleen.ILCs, reduction = "umap", label=TRUE, repel=TRUE, group.by="dataorigin")
+
+save(spleen.ILCs, file = "ILCs.spleen.rds")
+
+#Find markers 
+spleen.ILCs0.markers <- FindMarkers(spleen.ILCs, ident.1 = 0, min.pct = 0.25)
+spleen.ILCs1.markers <- FindMarkers(spleen.ILCs, ident.1 = 1, min.pct = 0.25)
+spleen.ILCs2.markers <- FindMarkers(spleen.ILCs, ident.1 = 2, min.pct = 0.25)
+spleen.ILCs3.markers <- FindMarkers(spleen.ILCs, ident.1 = 3, min.pct = 0.25)
+spleen.ILCs4.markers <- FindMarkers(spleen.ILCs, ident.1 = 4, min.pct = 0.25)
+spleen.ILCs5.markers <- FindMarkers(spleen.ILCs, ident.1 = 5, min.pct = 0.25)
+spleen.ILCs6.markers <- FindMarkers(spleen.ILCs, ident.1 = 6, min.pct = 0.25)
+spleen.ILCs7.markers <- FindMarkers(spleen.ILCs, ident.1 = 7, min.pct = 0.25)
+spleen.ILCs8.markers <- FindMarkers(spleen.ILCs, ident.1 = 8, min.pct = 0.25)
+spleen.ILCs9.markers <- FindMarkers(spleen.ILCs, ident.1 = 9, min.pct = 0.25)
+spleen.ILCs10.markers <- FindMarkers(spleen.ILCs, ident.1 = 10, min.pct = 0.25)
+spleen.ILCs11.markers <- FindMarkers(spleen.ILCs, ident.1 = 11, min.pct = 0.25)
+spleen.ILCs12.markers <- FindMarkers(spleen.ILCs, ident.1 = 12, min.pct = 0.25)
+spleen.ILCs13.markers <- FindMarkers(spleen.ILCs, ident.1 = 13, min.pct = 0.25)
+spleen.ILCs14.markers <- FindMarkers(spleen.ILCs, ident.1 = 14, min.pct = 0.25)
+spleen.ILCs15.markers <- FindMarkers(spleen.ILCs, ident.1 = 15, min.pct = 0.25)
+spleen.ILCs16.markers <- FindMarkers(spleen.ILCs, ident.1 = 16, min.pct = 0.25)
+spleen.ILCs17.markers <- FindMarkers(spleen.ILCs, ident.1 = 17, min.pct = 0.25)
+spleen.ILCs18.markers <- FindMarkers(spleen.ILCs, ident.1 = 18, min.pct = 0.25)
+spleen.ILCs19.markers <- FindMarkers(spleen.ILCs, ident.1 = 19, min.pct = 0.25)
+spleen.ILCs20.markers <- FindMarkers(spleen.ILCs, ident.1 = 20, min.pct = 0.25)
+
+#Clusters - 0-NK cell (CD39, GZMK, CCL3), 1- ILC3 (CD127, CD25, CD117, AGRG, NKP44, ICOS, CXCR4), 2- NK cell (GZMB, PFR), 3-ILC3 (LTB, PRR5), 4-NK cell (Fas), 5-NK cell (CD39) 6-pro-inflamm NK, 7
+
+#Feature plot
+FeaturePlot(spleen.ILCs, features = "FCER1G", order=TRUE)
+
+
+FeaturePlot(spleen.ILCs, features = "FCGR3A", order=TRUE, cols = c("light grey", "#44a946")) + theme (axis.title = element_blank(),  panel.border = element_rect(colour ="black", size=0.25), axis.ticks = element_blank(), axis.text = element_blank(), plot.title = element_blank()) + NoLegend()
+FeaturePlot(spleen.ILCs, features = "CD16-TotalSeqC", min.cutoff=0, order=TRUE, cols = c("light grey", "#0C69DF")) + theme (axis.title = element_blank(),  panel.border = element_rect(colour ="black", size=0.25), axis.ticks = element_blank(), axis.text = element_blank(), plot.title = element_blank()) + NoLegend()
+
+FeaturePlot(spleen.ILCs, features = "NCAM1", order=TRUE, cols = c("light grey", "#44a946")) + theme (axis.title = element_blank(),  panel.border = element_rect(colour ="black", size=0.25), axis.ticks = element_blank(), axis.text = element_blank(), plot.title = element_blank()) + NoLegend()
+FeaturePlot(spleen.ILCs, features = "CD56-TotalSeqC", min.cutoff=0, order=TRUE, cols = c("light grey", "#0C69DF")) + theme (axis.title = element_blank(),  panel.border = element_rect(colour ="black", size=0.25), axis.ticks = element_blank(), axis.text = element_blank(), plot.title = element_blank()) + NoLegend()
+
+
+FeaturePlot(spleen.ILCs, features = "IL2RA", order=TRUE, cols = c("light grey", "#44a946")) + theme (axis.title = element_blank(),  panel.border = element_rect(colour ="black", size=0.25), axis.ticks = element_blank(), axis.text = element_blank(), plot.title = element_blank()) + NoLegend()
+FeaturePlot(spleen.ILCs, features = "CD25-TotalSeqC", min.cutoff=1.5, order=TRUE, cols = c("light grey", "#0C69DF")) + theme (axis.title = element_blank(),  panel.border = element_rect(colour ="black", size=0.25), axis.ticks = element_blank(), axis.text = element_blank(), plot.title = element_blank()) + NoLegend()
+RidgePlot(spleen.ILCs.labels, features = "CD25-TotalSeqC", ncol=2)
+
+FeaturePlot(spleen.ILCs, features = "TIGIT", order=TRUE, cols = c("light grey", "#44a946")) + theme (axis.title = element_blank(),  panel.border = element_rect(colour ="black", size=0.25), axis.ticks = element_blank(), axis.text = element_blank(), plot.title = element_blank()) + NoLegend()
+FeaturePlot(spleen.ILCs, features = "TIGIT-TotalSeqC", order=TRUE, cols = c("light grey", "#0C69DF")) + theme (axis.title = element_blank(),  panel.border = element_rect(colour ="black", size=0.25), axis.ticks = element_blank(), axis.text = element_blank(), plot.title = element_blank()) + NoLegend()
+
+FeaturePlot(spleen.ILCs, features = "KLRB1", order=TRUE, cols = c("light grey", "#44a946")) + theme (axis.title = element_blank(),  panel.border = element_rect(colour ="black", size=0.25), axis.ticks = element_blank(), axis.text = element_blank(), plot.title = element_blank()) 
+FeaturePlot(spleen.ILCs, features = "CD161-TotalSeqC", order=TRUE, cols = c("light grey", "#0C69DF")) + theme (axis.title = element_blank(),  panel.border = element_rect(colour ="black", size=0.25), axis.ticks = element_blank(), axis.text = element_blank(), plot.title = element_blank()) 
+
+FeaturePlot(spleen.ILCs, features = "NCR1", order=TRUE, cols = c("light grey", "#44a946")) + theme (axis.title = element_blank(),  panel.border = element_rect(colour ="black", size=0.25), axis.ticks = element_blank(), axis.text = element_blank(), plot.title = element_blank()) + NoLegend()
+FeaturePlot(spleen.ILCs, features = "NKp46-TotalSeqC", order=TRUE, cols = c("light grey", "#0C69DF")) + theme (axis.title = element_blank(),  panel.border = element_rect(colour ="black", size=0.25), axis.ticks = element_blank(), axis.text = element_blank(), plot.title = element_blank()) + NoLegend()
+
+FeaturePlot(spleen.ILCs, features = "PTGDR2", order=TRUE, cols = c("light grey", "#44a946")) + theme (axis.title = element_blank(),  panel.border = element_rect(colour ="black", size=0.25), axis.ticks = element_blank(), axis.text = element_blank(), plot.title = element_blank()) + NoLegend()
+FeaturePlot(spleen.ILCs, features = "CRTh2-TotalSeqC", order=TRUE, cols = c("light grey", "#0C69DF")) + theme (axis.title = element_blank(),  panel.border = element_rect(colour ="black", size=0.25), axis.ticks = element_blank(), axis.text = element_blank(), plot.title = element_blank()) + NoLegend()
+
+FeaturePlot(spleen.ILCs, features = "IL7R", order=TRUE, cols = c("light grey", "#44a946")) + theme (axis.title = element_blank(),  panel.border = element_rect(colour ="black", size=0.25), axis.ticks = element_blank(), axis.text = element_blank(), plot.title = element_blank()) + NoLegend()
+FeaturePlot(spleen.ILCs, features = "CD127-TotalSeqC", min.cutoff = 0.5, order=TRUE, cols = c("light grey", "#0C69DF")) + theme (axis.title = element_blank(),  panel.border = element_rect(colour ="black", size=0.25), axis.ticks = element_blank(), axis.text = element_blank(), plot.title = element_blank()) + NoLegend()
+RidgePlot(spleen.ILCs.labels, features = "CD127-TotalSeqC", ncol=2)
+
+FeaturePlot(spleen.ILCs, features = "CCR6", order=TRUE, cols = c("light grey", "#44a946")) + theme (axis.title = element_blank(),  panel.border = element_rect(colour ="black", size=0.25), axis.ticks = element_blank(), axis.text = element_blank(), plot.title = element_blank()) + NoLegend()
+FeaturePlot(spleen.ILCs, features = "CCR6-TotalSeqC", order=TRUE, cols = c("light grey", "#0C69DF")) + theme (axis.title = element_blank(),  panel.border = element_rect(colour ="black", size=0.25), axis.ticks = element_blank(), axis.text = element_blank(), plot.title = element_blank()) + NoLegend()
+
+FeaturePlot(spleen.ILCs, features = "KLRK1", order=TRUE, cols = c("light grey", "#44a946")) + theme (axis.title = element_blank(),  panel.border = element_rect(colour ="black", size=0.25), axis.ticks = element_blank(), axis.text = element_blank(), plot.title = element_blank()) + NoLegend()
+FeaturePlot(spleen.ILCs, features = "NKG2D-TotalSeqC", min.cutoff =3, order=TRUE, cols = c("light grey", "#0C69DF")) + theme (axis.title = element_blank(),  panel.border = element_rect(colour ="black", size=0.25), axis.ticks = element_blank(), axis.text = element_blank(), plot.title = element_blank()) + NoLegend()
+
+FeaturePlot(spleen.ILCs, features = "NCR2", order=TRUE, cols = c("light grey", "#44a946")) + theme (axis.title = element_blank(),  panel.border = element_rect(colour ="black", size=0.25), axis.ticks = element_blank(), axis.text = element_blank(), plot.title = element_blank()) + NoLegend()
+FeaturePlot(spleen.ILCs, features = "NKp44-TotalSeqC", min.cutoff=3, order=TRUE, cols = c("light grey", "#0C69DF")) + theme (axis.title = element_blank(),  panel.border = element_rect(colour ="black", size=0.25), axis.ticks = element_blank(), axis.text = element_blank(), plot.title = element_blank()) + NoLegend()
+
+FeaturePlot(spleen.ILCs, features = "KLRD1", order=TRUE, cols = c("light grey", "#44a946")) + theme (axis.title = element_blank(),  panel.border = element_rect(colour ="black", size=0.25), axis.ticks = element_blank(), axis.text = element_blank(), plot.title = element_blank()) + NoLegend()
+FeaturePlot(spleen.ILCs, features = "CD94-TotalSeqC", min.cutoff =1, order=TRUE, cols = c("light grey", "#0C69DF")) + theme (axis.title = element_blank(),  panel.border = element_rect(colour ="black", size=0.25), axis.ticks = element_blank(), axis.text = element_blank(), plot.title = element_blank()) + NoLegend()
+
+FeaturePlot(spleen.ILCs, features = "PTGDR2", order=TRUE, cols = c("light grey", "#44a946")) + theme (axis.title = element_blank(),  panel.border = element_rect(colour ="black", size=0.25), axis.ticks = element_blank(), axis.text = element_blank(), plot.title = element_blank()) + NoLegend()
+FeaturePlot(spleen.ILCs, features = "CRTh2-TotalSeqC", order=TRUE, cols = c("light grey", "#0C69DF")) + theme (axis.title = element_blank(),  panel.border = element_rect(colour ="black", size=0.25), axis.ticks = element_blank(), axis.text = element_blank(), plot.title = element_blank()) + NoLegend()
+
+FeaturePlot(spleen.ILCs, features = "KLRG1", order=TRUE, cols = c("light grey", "#44a946")) + theme (axis.title = element_blank(),  panel.border = element_rect(colour ="black", size=0.25), axis.ticks = element_blank(), axis.text = element_blank(), plot.title = element_blank()) + NoLegend()
+FeaturePlot(spleen.ILCs, features = "KLRG1-TotalSeqC", order=TRUE, cols = c("light grey", "#0C69DF")) + theme (axis.title = element_blank(),  panel.border = element_rect(colour ="black", size=0.25), axis.ticks = element_blank(), axis.text = element_blank(), plot.title = element_blank()) + NoLegend()
+
+FeaturePlot(spleen.ILCs, features = "CXCR3", order=TRUE, cols = c("light grey", "#44a946")) + theme (axis.title = element_blank(),  panel.border = element_rect(colour ="black", size=0.25), axis.ticks = element_blank(), axis.text = element_blank(), plot.title = element_blank()) + NoLegend()
+FeaturePlot(spleen.ILCs, features = "CXCR3-TotalSeqC", order=TRUE, cols = c("light grey", "#0C69DF")) + theme (axis.title = element_blank(),  panel.border = element_rect(colour ="black", size=0.25), axis.ticks = element_blank(), axis.text = element_blank(), plot.title = element_blank()) + NoLegend()
+
+FeaturePlot(spleen.ILCs, features = "TRGC1", order=TRUE, cols = c("light grey", "#44a946")) + theme (axis.title = element_blank(),  panel.border = element_rect(colour ="black", size=0.25), axis.ticks = element_blank(), axis.text = element_blank(), plot.title = element_blank()) + NoLegend()
+FeaturePlot(spleen.ILCs, features = "TCRgd-TotalSeqC", order=TRUE, cols = c("light grey", "#0C69DF")) + theme (axis.title = element_blank(),  panel.border = element_rect(colour ="black", size=0.25), axis.ticks = element_blank(), axis.text = element_blank(), plot.title = element_blank()) + NoLegend()
+FeaturePlot(spleen.ILCs, features = "TCRgd-TotalSeqC", min.cutoff=3.5, order=TRUE, cols = c("light grey", "#0C69DF")) + theme (axis.title = element_blank(),  panel.border = element_rect(colour ="black", size=0.25), axis.ticks = element_blank(), axis.text = element_blank(), plot.title = element_blank()) + NoLegend()
+
+
+
+#Subset out helper ILCs
+#MERGE more than one (merge(obj1, c(obj2, obj3,....)))
+
+
+spleen.hILCs <- subset(spleen.ILCs, subset = seurat_clusters == 1|seurat_clusters == 3|seurat_clusters == 20|seurat_clusters == 14)
+spleen.hILCs <- SCTransform(spleen.hILCs, vars.to.regress="percent.mt")
+spleen.hILCs <- RunPCA(spleen.hILCs)
+spleen.hILCs <- RunUMAP(spleen.hILCs, reduction = "harmony", dims = 1:30)
+spleen.hILCs <- FindNeighbors(spleen.hILCs, dims = 1:30)
+spleen.hILCs <- FindClusters(spleen.hILCs, resolution = 0.75)
+DimPlot(spleen.hILCs, reduction = "umap", label=TRUE, repel=TRUE)
+DimPlot(spleen.hILCs, reduction = "umap", label=TRUE, repel=TRUE, group.by="dataorigin")
+
+save(spleen.hILCs, file = "hILCs.spleen.rds")
+
+#Find markers 
+spleen.hILCs0.markers <- FindMarkers(spleen.hILCs, ident.1 = 0, min.pct = 0.25)
+spleen.hILCs1.markers <- FindMarkers(spleen.hILCs, ident.1 = 1, min.pct = 0.25)
+spleen.hILCs2.markers <- FindMarkers(spleen.hILCs, ident.1 = 2, min.pct = 0.25)
+spleen.hILCs3.markers <- FindMarkers(spleen.hILCs, ident.1 = 3, min.pct = 0.25)
+spleen.hILCs4.markers <- FindMarkers(spleen.hILCs, ident.1 = 4, min.pct = 0.25)
+spleen.hILCs5.markers <- FindMarkers(spleen.hILCs, ident.1 = 5, min.pct = 0.25)
+spleen.hILCs6.markers <- FindMarkers(spleen.hILCs, ident.1 = 6, min.pct = 0.25)
+spleen.hILCs7.markers <- FindMarkers(spleen.hILCs, ident.1 = 7, min.pct = 0.25)
+spleen.hILCs8.markers <- FindMarkers(spleen.hILCs, ident.1 = 8, min.pct = 0.25)
+spleen.hILCs9.markers <- FindMarkers(spleen.hILCs, ident.1 = 9, min.pct = 0.25)
+
+#Feature plots
+FeaturePlot(spleen.hILCs, features = "CRTh2-TotalSeqC", order=TRUE)
+FeaturePlot(spleen.hILCs, features = "IL10", order=TRUE)
+FeaturePlot(spleen.hILCs, features = "IL22", order=TRUE)
+FeaturePlot(spleen.hILCs, features = "IL17A", order=TRUE)
+FeaturePlot(spleen.hILCs, features = "CD49a", order=TRUE)
+FeaturePlot(spleen.hILCs, features = "TRDC", order=TRUE)
+
+
+#Clusters- 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+cluster_ids <- c("ILC3.1", "ILC3.2", "ILC3.3", "ILC3.4", "ILC1.1", "ILC3.5", "ILC2", "ILC2", "ILC3.6", "ILC1")
+names(cluster_ids) <- levels(spleen.hILCs)
+helper.ILCs.labels <- RenameIdents(spleen.hILCs, cluster_ids)
+rm(cluster_ids)
+
+DimPlot(helper.ILCs.labels, reduction = "umap", label=TRUE, repel=TRUE)
+
+#Clusters- 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+cluster_ids <- c("ILC3.1", "ILC3.2", "ILC3.1", "ILC3.3", "ILC1", "ILC3.2", "ILC2", "ILC2", "ILC3.4", "ILC1")
+names(cluster_ids) <- levels(spleen.hILCs)
+helper.ILCs.labels <- RenameIdents(spleen.hILCs, cluster_ids)
+rm(cluster_ids)
+
+DimPlot(helper.ILCs.labels, reduction = "umap", label=TRUE, repel=TRUE)
+
+#Visualize 
+DotPlot(helper.ILCs.labels, col.min = 0.5, features = c("CD56-TotalSeqC", "EOMES", "NCAM1", "IL1R1", "IL7R", "AHR", "CD127-TotalSeqC", "AREG", "NCR2", "LTB", "NKp44-TotalSeqC", "NCR1", "NKp46-TotalSeqC", "NKG7", "SOX4", "CCR4","GATA3", "RORA", "RORC", "KIT", "CD117-TotalSeqC", "ICOS-TotalSeqC", "CRTh2-TotalSeqC", "HLADR-TotalSeqC","CCR6", "CCR6-TotalSeqC", "CD86-TotalSeqC"), cols = c("lightgrey", "#0C69DF")) + RotatedAxis()
+
+DoHeatmap(spleen.hILCs, features = VariableFeatures(spleen.hILCs)[1:50], cells = 1:500, size = 3, angle = 90)
+
+ggplot(helper.ILCs.labels@meta.data, aes(x=dataorigin, fill=Annotations)) + geom_bar(position = "fill")
+ggplot(helper.ILCs.labels@meta.data, aes(x=dataorigin, fill=Annotations)) + geom_bar(stat="count")
+
+
+ggplot(helper.ILCs.labels@meta.data, aes(Annotations)) + geom_bar(stat="count")
+
+helper.ILCs.labels$Annotations <- "Placeholder"
+helper.ILCs.labels$Annotations <- (ifelse(helper.ILCs.labels$seurat_clusters == "0", "ILC3.1", helper.ILCs.labels$Annotations))
+helper.ILCs.labels$Annotations <- (ifelse(helper.ILCs.labels$seurat_clusters == "1", "ILC3.2", helper.ILCs.labels$Annotations))
+helper.ILCs.labels$Annotations <- (ifelse(helper.ILCs.labels$seurat_clusters == "2", "ILC3.1", helper.ILCs.labels$Annotations))
+helper.ILCs.labels$Annotations <- (ifelse(helper.ILCs.labels$seurat_clusters == "3", "ILC3.3", helper.ILCs.labels$Annotations))
+helper.ILCs.labels$Annotations <- (ifelse(helper.ILCs.labels$seurat_clusters == "4", "ILC1", helper.ILCs.labels$Annotations))
+helper.ILCs.labels$Annotations <- (ifelse(helper.ILCs.labels$seurat_clusters == "5", "ILC3.2", helper.ILCs.labels$Annotations))
+helper.ILCs.labels$Annotations <- (ifelse(helper.ILCs.labels$seurat_clusters == "6", "ILC2", helper.ILCs.labels$Annotations))
+helper.ILCs.labels$Annotations <- (ifelse(helper.ILCs.labels$seurat_clusters == "7", "ILC2", helper.ILCs.labels$Annotations))
+helper.ILCs.labels$Annotations <- (ifelse(helper.ILCs.labels$seurat_clusters == "8", "ILC3.4", helper.ILCs.labels$Annotations))
+helper.ILCs.labels$Annotations <- (ifelse(helper.ILCs.labels$seurat_clusters == "9", "ILC1", helper.ILCs.labels$Annotations))
+
